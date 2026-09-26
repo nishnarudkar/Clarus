@@ -1,0 +1,21 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# data (SQLite, exports) — never committed
+data/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# node
+node_modules/
+frontend/dist/
+
+# misc
+.DS_Store

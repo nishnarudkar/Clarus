@@ -30,11 +30,13 @@ spoken message was *understood*, not just transcribed. Deadline: Wed 30 Sep 2026
 ## Run
 ```bash
 cp .env.example .env                                  # add ASSEMBLYAI_API_KEY
-cd backend && pip install -e . && uvicorn app.main:app --reload --port 8000
-cd frontend && npm install && npm run dev             # separate terminal
-cd backend && pytest                                  # no network / keys needed
-python eval/analyze.py                                # writes eval/results/summary.md
+python3 -m venv .venv && .venv/bin/pip install -e "backend[dev]"
+cd backend && ../.venv/bin/uvicorn app.main:app --reload --port 8000
+cd frontend && npm install && npm run dev             # http://localhost:5173 (proxies /ws, /api)
+cd backend && ../.venv/bin/pytest                     # offline; no network / keys needed
+cd frontend && npx tsc -b && npx oxlint && npm run build
 ```
+AssemblyAI API details and deviations from Project.md: `docs/DECISIONS.md`.
 
 ## Rules
 - Decisions live in code, not the LLM: clarify or not, which slot, readback, scoring.

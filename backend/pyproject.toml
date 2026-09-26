@@ -1,0 +1,28 @@
+[project]
+name = "clarus-backend"
+version = "0.1.0"
+description = "Clarus backend: AssemblyAI streaming relay and communication-breakdown measurement"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "websockets>=13.0",
+    "pydantic>=2.7",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# starlette.testclient nags about httpx; irrelevant to us.
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]

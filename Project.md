@@ -1,6 +1,6 @@
-# PROJECT.md — VoiceLens Build Specification
+# PROJECT.md — Clarus Build Specification
 
-> **Audience:** AI coding agents (and humans) building VoiceLens.
+> **Audience:** AI coding agents (and humans) building Clarus.
 > **Read this whole file before writing code.** It defines the scope, the architecture, the data model, the build order, and the acceptance criteria. When this file and your own judgment disagree, follow this file. When this file is silent, choose the simplest thing that works and write it down in `docs/DECISIONS.md`.
 
 ---
@@ -23,12 +23,12 @@
 
 ---
 
-## 1. What VoiceLens is (one paragraph)
+## 1. What Clarus is (one paragraph)
 
-VoiceLens is a real-time voice agent that **measures whether a spoken message was actually understood**, not just transcribed. A speaker is shown a short message card (e.g. *"Meet Priya at Gate 15 on Thursday at 4:30; code word: BAT"*) and relays it by voice. VoiceLens acts as the listener: it transcribes with AssemblyAI streaming STT, interprets the message, detects **communication breakdowns** (acoustic, confusable-word, semantic, incomplete), runs **clarification and repair**, reads back its final understanding, and logs every breakdown/repair event. Because the system secretly knows the card, every episode has **objective ground truth** for whether communication succeeded. That lets VoiceLens show, with numbers, that **a good transcript is not the same as successful communication**.
+Clarus is a real-time voice agent that **measures whether a spoken message was actually understood**, not just transcribed. A speaker is shown a short message card (e.g. *"Meet Priya at Gate 15 on Thursday at 4:30; code word: BAT"*) and relays it by voice. Clarus acts as the listener: it transcribes with AssemblyAI streaming STT, interprets the message, detects **communication breakdowns** (acoustic, confusable-word, semantic, incomplete), runs **clarification and repair**, reads back its final understanding, and logs every breakdown/repair event. Because the system secretly knows the card, every episode has **objective ground truth** for whether communication succeeded. That lets Clarus show, with numbers, that **a good transcript is not the same as successful communication**.
 
 ### Why this is different from other entries
-Several hackathon entries repair mishearings (Tally, Patchline, Say Less) or check understanding in one domain. VoiceLens's angle is **measurement**:
+Several hackathon entries repair mishearings (Tally, Patchline, Say Less) or check understanding in one domain. Clarus's angle is **measurement**:
 1. A **structured taxonomy of breakdown and repair events** grounded in conversation-analysis repair types (self-repair vs other-initiated repair).
 2. **Separating acoustic failure from communication failure** — using word-level ASR confidence vs. task-level success.
 3. A **built-in ground-truth task** (referential message relay), so the system can score its own breakdown detector (precision/recall, false alarms, undetected failures).
@@ -43,7 +43,7 @@ Keep this framing in the UI, README, and video. Never claim clinical validity.
 
 ### 2.1 Decision: Realtime STT path, not the all-in-one Voice Agent API
 
-VoiceLens needs **word-level timestamps and confidences** to compute pauses, speaking rate, and acoustic-uncertainty signals, and it needs **deterministic control** over when to clarify. So we use:
+Clarus needs **word-level timestamps and confidences** to compute pauses, speaking rate, and acoustic-uncertainty signals, and it needs **deterministic control** over when to clarify. So we use:
 
 - **AssemblyAI Universal-Streaming (Realtime STT over WebSocket)** — transcription, turn detection, word timings/confidences.
 - **AssemblyAI LLM Gateway** — interpretation (structured JSON output). Keeping the LLM on AssemblyAI strengthens "Application of Technology".
@@ -256,7 +256,7 @@ Rules: always show CEI **with its components**; label it "experimental, weights 
 
 ## 5. Data model
 
-SQLite at `data/voicelens.db` (gitignored). Pydantic models mirror tables.
+SQLite at `data/Clarus.db` (gitignored). Pydantic models mirror tables.
 
 ```
 Session(id, created_at, mode['relay'|'free'], condition['clean'|'noise'], participant_label, consent_given)
@@ -322,7 +322,7 @@ Design: clean, research-instrument look; dark and light mode; readable at 1080p 
 ## 8. Repository layout
 
 ```
-voicelens/
+Clarus/
 ├── PROJECT.md                 # this file
 ├── README.md
 ├── LICENSE                    # MIT
@@ -374,7 +374,7 @@ voicelens/
 ASSEMBLYAI_API_KEY=
 LLM_GATEWAY_MODEL=            # pick a fast model available on the gateway; confirm name in docs
 STREAMING_SAMPLE_RATE=16000
-DATABASE_PATH=data/voicelens.db
+DATABASE_PATH=data/Clarus.db
 SAVE_AUDIO=false
 ```
 Never commit keys. The browser must **never** receive the raw API key (audio is relayed through the backend; if you switch to browser-direct streaming, use short-lived temporary tokens only).
@@ -450,7 +450,7 @@ Work in this order. Each milestone ends with a commit and a short note in `docs/
 - Hosted TTS voice.
 - Mini MRT-style intelligibility module (speaker says 10 rhyme-set words; score recognition) and correlation with CEI per speaker.
 - Multilingual / code-switched (Hindi–English) cards.
-- Two-human mode (VoiceLens listens to two people and logs breakdowns between them).
+- Two-human mode (Clarus listens to two people and logs breakdowns between them).
 - Formal study: IRB/ethics approval, larger participant pool, pre-registered analysis.
 
 ---

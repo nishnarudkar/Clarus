@@ -1,4 +1,4 @@
-# VoiceLens
+# Clarus
 
 **A real-time voice agent that measures whether a spoken message was *understood* — not just transcribed.**
 
@@ -17,13 +17,13 @@ Speech-to-text tells you *what was said*. It does not tell you *whether the list
 
 Call centres, telehealth, pharmacy instructions, dispatch and language learning all care about the second question — *did communication succeed?* — and today it is mostly judged by gut feel.
 
-## What VoiceLens does
+## What Clarus does
 
 A speaker is shown a short message card and relays it by voice:
 
 > *"Meet Priya at Gate 15 on Thursday at 4:30. Code word: BAT."*
 
-VoiceLens is the listener. In real time it:
+Clarus is the listener. In real time it:
 
 1. **Transcribes** the speech with AssemblyAI streaming STT, keeping word-level timings and confidences.
 2. **Interprets** the message into structured slots (person, place, day, time, code word).
@@ -32,7 +32,7 @@ VoiceLens is the listener. In real time it:
 5. **Reads back** its final understanding and waits for a yes.
 6. **Logs every breakdown and repair event** and scores the episode.
 
-Because VoiceLens secretly knows the card, **every conversation has ground truth**. That lets it measure things most voice agents can't:
+Because Clarus secretly knows the card, **every conversation has ground truth**. That lets it measure things most voice agents can't:
 
 - ✅ breakdowns that were **repaired**
 - ❌ breakdowns that stayed **unrepaired**
@@ -46,7 +46,7 @@ The report page plots **ASR confidence against actual understanding** for every 
 - **Heard but misunderstood** — high transcript confidence, wrong meaning.
 - **Misheard but communicated** — low-confidence words, message still delivered after repair.
 
-Good transcription and successful communication are related, but they are not the same thing. VoiceLens makes the gap measurable.
+Good transcription and successful communication are related, but they are not the same thing. Clarus makes the gap measurable.
 
 ## Breakdown & repair taxonomy
 
@@ -90,7 +90,7 @@ Browser mic (16 kHz PCM) ──WS──► FastAPI ──WS──► AssemblyAI 
 Browser: live confidence-coloured transcript, event timeline, report · agent voice via Web Speech API
 ```
 
-**Why Realtime STT instead of the all-in-one Voice Agent API?** VoiceLens needs raw word-level timestamps and confidences to measure pauses, speaking rate and acoustic uncertainty, and it needs the decision to clarify to be made by transparent code, not by the model. The LLM interprets and phrases; the rules decide.
+**Why Realtime STT instead of the all-in-one Voice Agent API?** Clarus needs raw word-level timestamps and confidences to measure pauses, speaking rate and acoustic uncertainty, and it needs the decision to clarify to be made by transparent code, not by the model. The LLM interprets and phrases; the rules decide.
 
 ## Results (pilot)
 
@@ -114,7 +114,7 @@ This is a small pilot, not a validated study.
 **Requirements:** Python 3.11+, Node 20+, an AssemblyAI API key, Chrome.
 
 ```bash
-git clone <REPO_URL> && cd voicelens
+git clone <REPO_URL> && cd Clarus
 cp .env.example .env            # add ASSEMBLYAI_API_KEY
 
 # backend
@@ -143,7 +143,7 @@ python eval/analyze.py          # writes eval/results/summary.md
 Docker (single service, frontend served by FastAPI):
 
 ```bash
-docker build -t voicelens . && docker run -p 8000:8000 --env-file .env voicelens
+docker build -t Clarus . && docker run -p 8000:8000 --env-file .env Clarus
 ```
 
 ## Using it
@@ -172,11 +172,11 @@ Audio is **not stored** by default. Transcripts and derived measurements are sto
 - ASR errors from accent, noise or recording quality are not automatically communication failures — separating the two is exactly what this project explores, and the current rules are a first attempt.
 - Thresholds and CEI weights are hand-set, not learned or validated.
 - The pilot is small and English-only; conversational norms vary across languages and cultures.
-- **VoiceLens is not a clinical or validated intelligibility measure.**
+- **Clarus is not a clinical or validated intelligibility measure.**
 
 ## Roadmap
 
-- Human-annotated study comparing VoiceLens judgments with listener judgments (agreement, κ).
+- Human-annotated study comparing Clarus judgments with listener judgments (agreement, κ).
 - Short MRT-style intelligibility module per speaker, correlated with conversational CEI.
 - Hindi–English and other code-switched message cards.
 - Two-human mode: detect breakdowns between two people, not just between a person and an agent.
@@ -184,7 +184,7 @@ Audio is **not stored** by default. Transcripts and derived measurements are sto
 
 ## Background
 
-VoiceLens grew out of earlier work on the **Modified Rhyme Test**, a controlled measure of speech intelligibility. The question behind it: can the same idea — *was the message received correctly?* — be measured in natural, real-time conversation? The longer-term research proposal is in [`docs/RESEARCH_NOTES.md`](docs/RESEARCH_NOTES.md).
+Clarus grew out of earlier work on the **Modified Rhyme Test**, a controlled measure of speech intelligibility. The question behind it: can the same idea — *was the message received correctly?* — be measured in natural, real-time conversation? The longer-term research proposal is in [`docs/RESEARCH_NOTES.md`](docs/RESEARCH_NOTES.md).
 
 ## Built with
 

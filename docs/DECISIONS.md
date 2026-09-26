@@ -4,6 +4,44 @@ Newest first. Each entry says what was decided, why, and where it lives in code.
 
 ---
 
+## M2: Features and normalisers (2026-09-26)
+
+### Features (`backend/app/features.py`, PROJECT.md §4.1)
+- **Pure functions over a final Turn's `words[]`**, computed per `final_turn` and sent to the browser as `features` on each `final_turn`. When a formatted re-send arrives, features are recomputed on it, because the formatted text has the commas that filler detection needs.
+- **Thresholds** are in `config.py`: pause ≥ 250 ms, long pause ≥ 1000 ms, low confidence < 0.6, repetition when Jaccard ≥ 0.6. The filler list and the self-repair marker list are in `config.py` too.
+- **Undefined values are `None`, never 0.** Examples: `speaking_rate_wpm` for a zero-length turn, `mean_pause_ms` when there are no pauses, `repetition_overlap` for the first turn. The UI shows these as "—".
+- **`filler_rate` = fillers / words.** Fillers are included in `word_count` and in the speaking rate.
+- **Discourse fillers ("like", "you know")** count only when set off by commas: preceded by a comma (or at the start of the turn) and followed by one. That needs punctuation, so it only works on formatted turns. Known limits:
+  - Unformatted turns never count them.
+  - Unpunctuated filler uses ("it was like gate 15") are missed.
+- **Self-repair markers** ("sorry", "i mean", "no wait", "actually", "rather", "correction") count only mid-turn, i.e. with at least one word before them. A turn-initial "Sorry, what?" is a repair request (M3), not a self-repair. Known false positives: "I'd rather", "actually" used as emphasis.
+- **Repetition** compares against the previous *distinct* user turn. The formatted re-send of a turn is compared with the turn before it, not with its own unformatted version. Tokens are compared with fillers dropped and number words converted to digits, because a formatted turn writes "15" where the plain turn says "fifteen" (a test caught this).
+- **`slot_span_conf` and `latency_to_respond_ms`** are implemented and unit-tested but stay `None` until M3:
+  - `slot_span_conf` needs the interpreter's `evidence_words`.
+  - `latency_to_respond_ms` needs the agent's speech-end time. That time is on the browser's wall clock, while word timestamps are on the AssemblyAI stream clock, so M3 must map one to the other.
+- **Not yet checked on real audio:** whether the chosen streaming model transcribes disfluencies ("um", "uh") at all. If it doesn't, `filler_count` will read 0. Check on the first live run.
+
+### Normalisers (`backend/app/normalize.py`, PROJECT.md §3.1)
+- **Spoken numbers.** `numbers_to_digits` handles teens and tens ("fifteen" vs "fifty"), compounds ("twenty one"), "N hundred [and] M", and digit-by-digit runs ("one five" → 15, "four oh five" → 405).
+  - "oh" counts as zero only inside a digit run.
+  - "four thirty" stays two numbers ("4 30"), which the time parser then reads as 4:30.
+- **person:** letters only, title-cased. A match needs difflib similarity ≥ `person_fuzzy_threshold` (0.85). That threshold keeps the confusable pairs apart: Ravi/Rabi scores 0.75 and Anna/Hannah 0.80.
+- **place:** numbers become digits and leading "at/the/to/in/on/by" are dropped ("at gate one five" → "Gate 15"). Matching is case-insensitive equality.
+- **day:** a weekday name or abbreviation → a lowercase name. It returns `None` if zero weekdays, or two different ones, are mentioned.
+- **time:** returns `NormalizedTime(hour, minute, explicit)`.
+  - `explicit` is true when am/pm, noon/midnight, a 24-hour hour (0 or 13–23) or a zero-padded `HH:MM` like "09:15" is given.
+  - When nothing says am or pm, times are compared modulo 12, so "4:30" and "half past four" match a 16:30 target, as §3.1 requires. A time that is explicit and wrong ("4:30 am") does not match.
+  - Card targets are written zero-padded 24-hour, so they are always explicit.
+- **number:** exactly one number in the text, otherwise `None`.
+- **code_word:** exact match after lowercasing and stripping everything except letters. Spelled-out letters ("B-A-T") are not handled yet; revisit in M3 if clarifications use spelling.
+- **Entry points.** `slot_matches(type, heard, target)` is what the Scorer (M4) will use. `normalize_slot` gives a canonical display value. For ambiguous times it returns the hour as spoken (e.g. "04:30").
+
+### UI
+- Each final turn shows a feature row: rate (wpm), pauses (and how many are long), fillers, mean/min confidence, low-confidence share, overlap with the previous turn, and self-repair markers. Notable values get a border plus a "●" marker, so colour is never the only cue.
+- Tooltip thresholds come from `/api/config`, which now also serves `pause_min_ms`, `long_pause_min_ms` and `low_conf_threshold`, so the thresholds stay defined only in `config.py`.
+
+---
+
 ## M1 — Streaming spine (2026-09-26)
 
 ### How the AssemblyAI API was verified

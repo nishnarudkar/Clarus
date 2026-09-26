@@ -17,6 +17,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from .assemblyai_stream import AssemblyAIStreamClient, Connector, UpstreamConnectError, default_connector
 from .config import Settings, settings as default_settings
+from .features import compute_turn_features, content_tokens
 from .models import (
     AaiBegin,
     AaiError,
@@ -77,6 +78,11 @@ class StreamSession:
         self._supervisor: asyncio.Task[None] | None = None
         self._attempts = 0
         self._stream_id = ""
+        # Repetition is measured against the previous *distinct* user turn; the
+        # formatted re-send of a turn must not count as a repeat of itself.
+        self._last_turn_key: tuple[str, int] | None = None
+        self._last_turn_tokens: set[str] | None = None
+        self._prev_turn_tokens: set[str] | None = None
         self._send_lock = asyncio.Lock()
         self._browser_open = True
 
@@ -196,6 +202,12 @@ class StreamSession:
         elif isinstance(msg, AaiTurn):
             words = _words_out(msg.words, s)
             if msg.end_of_turn:
+                key = (self._stream_id, msg.turn_order)
+                if key != self._last_turn_key:
+                    self._prev_turn_tokens = self._last_turn_tokens
+                    self._last_turn_key = key
+                features = compute_turn_features(msg.words, previous_tokens=self._prev_turn_tokens, s=s)
+                self._last_turn_tokens = content_tokens(msg.words, s)
                 await self.send(
                     ServerFinalTurn(
                         stream_id=self._stream_id,
@@ -204,6 +216,7 @@ class StreamSession:
                         formatted=msg.turn_is_formatted,
                         end_of_turn_confidence=msg.end_of_turn_confidence,
                         words=words,
+                        features=features,
                     )
                 )
             else:

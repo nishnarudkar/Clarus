@@ -267,3 +267,38 @@ input:focus-visible {
   color: var(--partial);
   font-style: italic;
 }
+
+/* Per-turn features mini-panel */
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 4px;
+}
+
+.feat {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.feat dt {
+  color: var(--muted);
+}
+
+.feat dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.feat-flag {
+  border-color: var(--conf-mid);
+}
+
+.feat-flag dd span {
+  color: var(--conf-mid);
+}

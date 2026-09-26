@@ -73,5 +73,27 @@ class Settings:
     conf_band_high: float = 0.85
     conf_band_low: float = 0.6
 
+    # --- Per-turn features (PROJECT.md §4.1) --------------------------------
+    # Inter-word gap (ms) that counts as a pause.
+    pause_min_ms: int = 250
+    # Inter-word gap (ms) that counts as a long pause.
+    long_pause_min_ms: int = 1000
+    # A word below this ASR confidence counts toward low_conf_frac.
+    low_conf_threshold: float = 0.6
+    # Token Jaccard with the previous user turn at or above this => repetition.
+    repetition_jaccard_threshold: float = 0.6
+    # Filler tokens, always counted.
+    fillers: tuple[str, ...] = ("um", "umm", "uh", "uhh", "uhm", "er", "erm", "ah", "hmm", "mm")
+    # Discourse-marker fillers, counted only when set off by a comma in formatted text
+    # ("so, like, gate 15" / "you know, thursday"); a simple heuristic, see docs/DECISIONS.md.
+    discourse_fillers: tuple[str, ...] = ("like", "you know")
+    # Self-repair markers; counted only mid-turn (at least one word before them).
+    self_repair_markers: tuple[str, ...] = ("sorry", "i mean", "no wait", "actually", "rather", "correction")
+
+    # --- Slot normalisers (PROJECT.md §3.1) ---------------------------------
+    # Person names match if difflib similarity (case-insensitive) is at least this.
+    # 0.85 keeps confusable pairs apart: Ravi/Rabi = 0.75, Anna/Hannah = 0.80.
+    person_fuzzy_threshold: float = 0.85
+
 
 settings = Settings()

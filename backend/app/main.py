@@ -29,7 +29,13 @@ async def health() -> dict:
 @app.get("/api/config")
 async def public_config() -> dict:
     """Non-secret settings the UI displays (thresholds stay defined in config.py)."""
-    return {"conf_band_high": settings.conf_band_high, "conf_band_low": settings.conf_band_low}
+    return {
+        "conf_band_high": settings.conf_band_high,
+        "conf_band_low": settings.conf_band_low,
+        "pause_min_ms": settings.pause_min_ms,
+        "long_pause_min_ms": settings.long_pause_min_ms,
+        "low_conf_threshold": settings.low_conf_threshold,
+    }
 
 
 # Serve the built frontend (frontend/dist) when present: one service, one URL.

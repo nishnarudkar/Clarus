@@ -117,16 +117,18 @@ This is a small pilot, not a validated study.
 git clone <REPO_URL> && cd Clarus
 cp .env.example .env            # add ASSEMBLYAI_API_KEY
 
-# backend
-cd backend
-pip install -e .
-uvicorn app.main:app --reload --port 8000
+# backend (terminal 1)
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e "backend[dev]"
+cd backend && uvicorn app.main:app --reload --port 8000
 
-# frontend (new terminal)
+# frontend (terminal 2)
 cd frontend
 npm install
-npm run dev                     # open the printed URL, allow microphone
+npm run dev                     # open http://localhost:5173 in Chrome, allow microphone
 ```
+
+Single-port alternative: `cd frontend && npm run build`, then open http://localhost:8000. FastAPI serves the built frontend.
 
 Run tests (no API key or network needed):
 

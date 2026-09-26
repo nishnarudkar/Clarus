@@ -1,0 +1,269 @@
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --text: #1b1f27;
+  --muted: #5d6675;
+  --border: #dde1e8;
+  --accent: #3b6fd8;
+  --accent-text: #ffffff;
+  --conf-high: #1c7c46;
+  --conf-mid: #9a6300;
+  --conf-low: #c0322b;
+  --partial: #8a93a3;
+  --warn-bg: #fff4dc;
+  --bad-bg: #fde8e7;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #12151b;
+    --surface: #1a1e26;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --border: #2c323d;
+    --accent: #6d97ee;
+    --accent-text: #0d1117;
+    --conf-high: #4cc27f;
+    --conf-mid: #e2a73a;
+    --conf-low: #ff6b62;
+    --partial: #6d7686;
+    --warn-bg: #3a2e12;
+    --bad-bg: #3d1c1a;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+h1 {
+  font-size: 2.2rem;
+  margin: 24px 0 8px;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 0 0 8px;
+}
+
+.lede {
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+button {
+  font: inherit;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.consent input {
+  margin-top: 5px;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.9rem;
+}
+
+.pill .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.pill-live .dot {
+  background: var(--conf-high);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.pill-busy .dot {
+  background: var(--conf-mid);
+}
+
+.pill-bad .dot {
+  background: var(--conf-low);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill-live .dot {
+    animation: none;
+  }
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.errors p {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.errors .warn {
+  background: var(--warn-bg);
+}
+
+.errors .bad {
+  background: var(--bad-bg);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 0.85rem;
+  margin: 0 0 12px;
+}
+
+.transcript {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.turns {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.turn {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.turn-words {
+  font-size: 1.25rem;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+
+.turn-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Word confidence: colour + underline style + marker, so colour is never the only cue. */
+.w {
+  text-underline-offset: 4px;
+}
+
+.legend .w {
+  margin-right: 0.3em;
+}
+
+.w-high {
+  color: var(--conf-high);
+}
+
+.w-mid {
+  color: var(--conf-mid);
+  text-decoration: underline dotted;
+}
+
+.w-low {
+  color: var(--conf-low);
+  font-weight: 600;
+  text-decoration: underline wavy;
+}
+
+/* Generated content: visible marker that isn't copied with the transcript text. */
+.w-low::after {
+  content: '?';
+  font-size: 0.65em;
+  vertical-align: super;
+  margin-left: 1px;
+}
+
+.w-partial {
+  color: var(--partial);
+  font-style: italic;
+}

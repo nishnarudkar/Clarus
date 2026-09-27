@@ -1,197 +1,181 @@
 # Clarus
 
-**A real-time voice agent that measures whether a spoken message was *understood* — not just transcribed.**
+**A real-time voice agent framework that evaluates spoken message comprehension beyond standard transcription.**
 
 Built on **AssemblyAI** Universal-Streaming and LLM Gateway for the AssemblyAI Voice Agent Hackathon (lablab.ai, September 2026).
 
-🔗 **Live demo:** `<DEMO_URL>` · 🎬 **Video:** `<VIDEO_URL>` · 📊 **Slides:** `<SLIDES_URL>`
+**Live Demo:** `<DEMO_URL>` | **Video:** `<VIDEO_URL>` | **Slides:** `<SLIDES_URL>`
 
 ---
 
-## The problem
+## Overview & Problem Statement
 
-Speech-to-text tells you *what was said*. It does not tell you *whether the listener got the message*.
+Speech-to-text systems evaluate *what was spoken*, but do not verify *whether the listener understood the intended message*.
 
-- A transcript can look perfect while the meaning is wrong ("fifteen" heard correctly, but written down as the wrong gate).
-- A transcript can be full of low-confidence words while the message still gets through after a quick clarification.
+* A transcript can be 100% accurate verbatim while the semantic meaning is misunderstood (e.g., "fifteen" transcribed correctly, but mapped to the wrong destination code).
+* A transcript can contain low-confidence acoustic segments while the overall core message is successfully conveyed following a brief clarification.
 
-Call centres, telehealth, pharmacy instructions, dispatch and language learning all care about the second question — *did communication succeed?* — and today it is mostly judged by gut feel.
+Critical domains including healthcare, emergency dispatch, contact centres, and language instruction require verification of successful communication rather than simple transcription accuracy. Clarus provides a framework to quantify and bridge this gap.
 
-## What Clarus does
+## How Clarus Works
 
-A speaker is shown a short message card and relays it by voice:
+During a session, a speaker reads and relays a designated message card by voice:
 
 > *"Meet Priya at Gate 15 on Thursday at 4:30. Code word: BAT."*
 
-Clarus is the listener. In real time it:
+Serving as the intelligent listener, Clarus performs real-time processing:
 
-1. **Transcribes** the speech with AssemblyAI streaming STT, keeping word-level timings and confidences.
-2. **Interprets** the message into structured slots (person, place, day, time, code word).
-3. **Detects communication breakdowns** — acoustic, confusable-word, incomplete, and semantic.
-4. **Repairs** them with one targeted clarification at a time ("Was that fifteen — one-five — or fifty?").
-5. **Reads back** its final understanding and waits for a yes.
-6. **Logs every breakdown and repair event** and scores the episode.
+1. **Transcription:** Transcribes incoming audio via AssemblyAI streaming STT, maintaining word-level timestamps and confidence metrics.
+2. **Interpretation:** Maps the spoken message into structured semantic slots (person, location, day, time, code word).
+3. **Breakdown Detection:** Identifies communication breakdowns categorized by type (acoustic, confusable-word, incomplete, and semantic).
+4. **Targeted Repair:** Initiates single-point clarification requests when needed ("Was that fifteen — one-five — or fifty?").
+5. **Readback Verification:** Synthesizes its final structured understanding for speaker confirmation.
+6. **Logging & Scoring:** Records all breakdown and repair events to generate an episode performance evaluation.
 
-Because Clarus secretly knows the card, **every conversation has ground truth**. That lets it measure things most voice agents can't:
+Because Clarus operates with hidden target card ground truth, it evaluates metrics inaccessible to standard voice agents:
 
-- ✅ breakdowns that were **repaired**
-- ❌ breakdowns that stayed **unrepaired**
-- ⚠️ **false alarms** (it asked when it had already understood)
-- 🕳️ **undetected failures** (it was wrong and never noticed)
+* **Repaired Breakdowns:** Communication failures that were successfully resolved.
+* **Unrepaired Breakdowns:** Communication failures that remained uncorrected.
+* **False Alarms:** Unnecessary clarification requests when the message was already correctly understood.
+* **Undetected Failures:** Incorrect interpretations that occurred without detection.
 
-## The key insight it surfaces
+## Key Insights & Metrics
 
-The report page plots **ASR confidence against actual understanding** for every episode, and counts:
+The analytics dashboard correlates **ASR confidence against semantic understanding** across episodes, highlighting:
 
-- **Heard but misunderstood** — high transcript confidence, wrong meaning.
-- **Misheard but communicated** — low-confidence words, message still delivered after repair.
+* **Heard but Misunderstood:** High transcript confidence with incorrect semantic interpretation.
+* **Misheard but Communicated:** Low-confidence acoustic input where the core message was successfully repaired and delivered.
 
-Good transcription and successful communication are related, but they are not the same thing. Clarus makes the gap measurable.
+Clarus formalizes the distinction between verbatim transcription quality and communication success.
 
-## Breakdown & repair taxonomy
+## Breakdown & Repair Taxonomy
 
-| Breakdown | Signal |
+| Breakdown Type | Detection Signal |
 |---|---|
-| **Acoustic** | low word confidence on the words carrying the information |
-| **Confusable** | known confusable families: 15/50, Tuesday/Thursday, rhyme sets like bat/pat/cat |
-| **Incomplete** | a required piece of the message is missing |
-| **Semantic** | words heard with high confidence, meaning still wrong (revealed by a correction) |
-| **User repair request** | the speaker didn't understand the agent |
+| **Acoustic** | Low ASR confidence on key information-bearing words |
+| **Confusable** | Matching known confusable word families (e.g., 15/50, Tuesday/Thursday, MRT rhyme sets like bat/pat/cat) |
+| **Incomplete** | Omission of required target message slots |
+| **Semantic** | High-confidence transcription yielding incorrect slot values (detected via speaker correction) |
+| **User Repair Request** | Explicit speaker indication that the agent's understanding is incorrect |
 
-Repairs are tagged with who started them — speaker self-repair, system-initiated clarification, or speaker correcting the agent — following the repair categories used in conversation analysis.
+Repairs are categorized by origin — speaker self-repair, system-initiated clarification, or speaker correction — adhering to established conversation analysis standards. Confusable code words are derived from **Modified Rhyme Test (MRT)** protocols to link controlled intelligibility testing with conversational interaction.
 
-The confusable code words are modelled on **Modified Rhyme Test**-style word sets, linking controlled intelligibility testing to natural conversation.
+## Metrics & Scoring
 
-## Metrics
-
-Per turn: speaking rate, pauses, long pauses, filler words, mean/min ASR confidence, low-confidence fraction, repetition, self-repair markers.
-
-Per episode: success, slot accuracy, turns, repair turns, time to success, and the **Communication Effectiveness Index (CEI)**:
+* **Per Turn:** Speaking rate, pause duration, long pauses, filler word frequency, mean/min ASR confidence, low-confidence token ratio, repetition, and self-repair markers.
+* **Per Episode:** Completion success rate, slot accuracy, turn counts, repair turn ratio, latency to completion, and the **Communication Effectiveness Index (CEI)**:
 
 ```
 CEI = 100 × (0.60 · slot accuracy + 0.25 · efficiency + 0.15 · (1 − unrepaired rate))
 ```
 
-> CEI is **experimental**. Weights were fixed before collecting data and have not been validated. It is always shown next to its components.
+> **Note:** CEI is an experimental metric with fixed initial weighting, displayed alongside its constituent components.
 
-Per session: success rate, breakdowns by type, repair rate by type, and the breakdown detector's precision and recall against ground truth.
+* **Per Session:** Aggregate success rate, breakdown frequency by type, repair efficiency, and detector precision/recall relative to ground truth.
 
-## Architecture
+## System Architecture
 
 ```
-Browser mic (16 kHz PCM) ──WS──► FastAPI ──WS──► AssemblyAI Universal-Streaming
+Browser Mic (16 kHz PCM) ──WS──► FastAPI ──WS──► AssemblyAI Universal-Streaming
                                    │  (turns, word timings, confidences)
-                                   ├── Feature extractor
+                                   ├── Feature Extractor
                                    ├── Interpreter ──► AssemblyAI LLM Gateway (JSON)
-                                   ├── Breakdown detector (deterministic rules)
-                                   ├── Dialogue manager (clarify / read back / confirm)
-                                   ├── Scorer (vs hidden target card)
-                                   └── SQLite + JSONL/CSV export
-Browser: live confidence-coloured transcript, event timeline, report · agent voice via Web Speech API
+                                   ├── Breakdown Detector (Rule Engine)
+                                   ├── Dialogue Manager (Clarify / Read Back / Confirm)
+                                   ├── Scorer (vs Hidden Target Card)
+                                   └── SQLite + JSONL/CSV Export
+Browser UI: Real-time confidence-coded transcript, timeline event log, reports & Web Speech API TTS
 ```
 
-**Why Realtime STT instead of the all-in-one Voice Agent API?** Clarus needs raw word-level timestamps and confidences to measure pauses, speaking rate and acoustic uncertainty, and it needs the decision to clarify to be made by transparent code, not by the model. The LLM interprets and phrases; the rules decide.
+**Architectural Rationale:** Clarus utilizes streaming STT rather than an end-to-end voice agent API to access granular word-level timestamps and confidence scores. This data powers pause detection, rate calculation, and acoustic uncertainty scoring, while ensuring repair logic is driven by explicit, deterministic rules rather than opaque model behavior.
 
-## Results (pilot)
+## Results (Pilot Study)
 
-> ⚠️ Fill in from `eval/results/summary.md` after the pilot. Do not estimate.
+> **Note:** To be populated from `eval/results/summary.md` following pilot execution.
 
-| | Value |
+| Metric | Value |
 |---|---|
-| Speakers / episodes | `<n speakers> / <n episodes>` |
-| Episode success rate | `<…>` |
+| Speakers / Episodes | `<n speakers> / <n episodes>` |
+| Episode Success Rate | `<…>` |
 | Mean CEI | `<…>` |
-| Breakdowns flagged (by type) | `<…>` |
-| Repair success rate | `<…>` |
-| Detector precision / recall | `<…> / <…>` |
-| False alarms / undetected | `<…> / <…>` |
-| "Heard but misunderstood" episodes | `<…>` |
+| Breakdown Counts (by type) | `<…>` |
+| Repair Success Rate | `<…>` |
+| Detector Precision / Recall | `<…> / <…>` |
+| False Alarms / Undetected | `<…> / <…>` |
+| "Heard but Misunderstood" Count | `<…>` |
 
-This is a small pilot, not a validated study.
+## Quick Start
 
-## Quick start
-
-**Requirements:** Python 3.11+, Node 20+, an AssemblyAI API key, Chrome.
+**Prerequisites:** Python 3.11+, Node 20+, AssemblyAI API Key, Google Chrome.
 
 ```bash
 git clone <REPO_URL> && cd Clarus
-cp .env.example .env            # add ASSEMBLYAI_API_KEY
+cp .env.example .env            # Configure ASSEMBLYAI_API_KEY
 
-# backend (terminal 1)
+# Backend Setup (Terminal 1)
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e "backend[dev]"
 cd backend && uvicorn app.main:app --reload --port 8000
 
-# frontend (terminal 2)
+# Frontend Setup (Terminal 2)
 cd frontend
 npm install
-npm run dev                     # open http://localhost:5173 in Chrome, allow microphone
+npm run dev                     # Open http://localhost:5173 in Chrome
 ```
 
-Single-port alternative: `cd frontend && npm run build`, then open http://localhost:8000. FastAPI serves the built frontend.
+*Single-port deployment:* Run `cd frontend && npm run build`, then access `http://localhost:8000` (FastAPI serves the static frontend).
 
-Run tests (no API key or network needed):
-
+**Execution of Offline Test Suite:**
 ```bash
 cd backend && pytest
 ```
 
-Analyse collected sessions:
-
+**Evaluation & Analytics:**
 ```bash
-python eval/analyze.py          # writes eval/results/summary.md
+python eval/analyze.py          # Generates eval/results/summary.md
 ```
 
-Docker (single service, frontend served by FastAPI):
-
+**Containerized Deployment:**
 ```bash
 docker build -t Clarus . && docker run -p 8000:8000 --env-file .env Clarus
 ```
 
-## Using it
+## User Workflow
 
-1. Open the app, tick the consent box, choose **Message Relay** mode.
-2. Read the card and say it out loud in your own words.
-3. Answer the agent's clarification questions; confirm or correct its read-back.
-4. Do several cards, then open **Report** to see your breakdowns, repairs and CEI.
-5. Optional: switch on the **noise condition** to see acoustic breakdowns appear live, or try **Free Conversation** mode.
+1. Launch application, accept consent terms, and select **Message Relay** mode.
+2. Review the displayed card and articulate the message naturally.
+3. Respond to any agent clarification queries and verify or correct the read-back output.
+4. Complete multiple cards to generate performance reports detailing breakdowns, repairs, and CEI scores.
+5. (Optional) Toggle the **Noise Condition** simulation to test live acoustic breakdown detection, or explore **Free Conversation** mode.
 
-## Where this is useful
+## Applications & Use Cases
 
-- **Contact-centre QA:** flag calls where the customer's request was probably misunderstood, not just calls with poor audio.
-- **Healthcare & pharmacy:** confirm that dosage, time and day were actually understood.
-- **Speech therapy & language learning:** track how often a speaker's messages need repair, and which kinds.
-- **Accessibility:** measure communication success for speakers that ASR handles poorly.
-- **Voice-agent developers:** measure false alarms and silent failures, not just word error rate.
+* **Contact Centre Quality Assurance:** Identify calls where customer intent was misunderstood beyond transcription quality.
+* **Healthcare & Pharmacy:** Verify patient comprehension of dosage, frequency, and administration instructions.
+* **Speech Therapy & Language Learning:** Quantify repair frequency and breakdown patterns across speakers.
+* **Accessibility Assessment:** Measure speech communication success across diverse acoustic and speech characteristics.
+* **Voice Agent Evaluation:** Benchmark false positive clarifications and silent failures in conversational AI.
 
-## Privacy
+## Data Governance & Privacy
 
-Audio is **not stored** by default. Transcripts and derived measurements are stored locally in SQLite. A consent checkbox appears before the first session. Nothing is shared with third parties beyond the AssemblyAI API calls needed for transcription and interpretation.
+Audio streams are processed transiently and are **not stored** by default. Transcripts and session metrics are stored locally in SQLite. User consent is gathered prior to session initialization. External data transmission is strictly limited to required AssemblyAI API endpoints.
 
-## Limitations
+## Limitations & Scope
 
-- Communication success is measured on a **structured relay task**, not open conversation; free-conversation mode has no ground truth.
-- ASR errors from accent, noise or recording quality are not automatically communication failures — separating the two is exactly what this project explores, and the current rules are a first attempt.
-- Thresholds and CEI weights are hand-set, not learned or validated.
-- The pilot is small and English-only; conversational norms vary across languages and cultures.
-- **Clarus is not a clinical or validated intelligibility measure.**
+* Communication evaluation is benchmarked on **structured relay tasks**; free conversation mode lacks ground truth target cards.
+* ASR variances due to accent or ambient noise do not inherently constitute communication failures; Clarus distinguishes between transcription noise and semantic intent delivery.
+* Scoring weights and threshold parameters are heuristically set and require empirical validation.
+* Clarus is designed as an evaluation prototype and **is not a clinical diagnostic tool**.
 
-## Roadmap
+## Project Background
 
-- Human-annotated study comparing Clarus judgments with listener judgments (agreement, κ).
-- Short MRT-style intelligibility module per speaker, correlated with conversational CEI.
-- Hindi–English and other code-switched message cards.
-- Two-human mode: detect breakdowns between two people, not just between a person and an agent.
-- Barge-in and hosted TTS voice.
+Clarus builds upon research in speech intelligibility testing using the **Modified Rhyme Test (MRT)**. The project extends these principles to investigate whether message delivery and comprehension can be quantified deterministically during natural spoken interaction.
 
-## Background
+## Core Technologies
 
-Clarus grew out of earlier work on the **Modified Rhyme Test**, a controlled measure of speech intelligibility. The question behind it: can the same idea — *was the message received correctly?* — be measured in natural, real-time conversation? The longer-term research proposal is in [`docs/RESEARCH_NOTES.md`](docs/RESEARCH_NOTES.md).
+AssemblyAI Universal-Streaming · AssemblyAI LLM Gateway · FastAPI · React · TypeScript · Vite · Web Audio API · Web Speech API · SQLite
 
-## Built with
+## License
 
-AssemblyAI Universal-Streaming · AssemblyAI LLM Gateway · FastAPI · React + Vite + TypeScript · Web Audio API · Web Speech API · SQLite
+MIT License — see [LICENSE](LICENSE) for details.
 
-## Licence
-
-MIT — see [LICENSE](LICENSE).

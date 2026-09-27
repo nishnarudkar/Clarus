@@ -145,6 +145,29 @@ class ServerPartialTranscript(_ServerEvent):
     words: list[WordOut]
 
 
+class TurnFeatures(BaseModel):
+    """Per-turn acoustic/prosodic/lexical features (PROJECT.md §4.1).
+    None means "not defined for this turn" (e.g. no pauses, no previous turn)."""
+
+    word_count: int
+    duration_s: float
+    speaking_rate_wpm: float | None
+    pause_count: int
+    long_pause_count: int
+    mean_pause_ms: float | None
+    max_pause_ms: int | None
+    filler_count: int
+    filler_rate: float  # fillers / words
+    mean_asr_conf: float | None
+    min_asr_conf: float | None
+    low_conf_frac: float | None
+    slot_span_conf: float | None  # needs interpreter evidence_words (M3)
+    self_repair_markers: list[str]
+    repetition_overlap: float | None  # token Jaccard with the previous user turn
+    is_repetition: bool
+    latency_to_respond_ms: int | None  # needs agent speech end (M3)
+
+
 class ServerFinalTurn(_ServerEvent):
     """A finished user turn. With format_turns, the same `turn_order` may arrive
     twice: first unformatted, then formatted — clients upsert by (stream_id, turn_order)."""
@@ -156,6 +179,7 @@ class ServerFinalTurn(_ServerEvent):
     formatted: bool
     end_of_turn_confidence: float
     words: list[WordOut]
+    features: TurnFeatures
 
 
 class ServerError(_ServerEvent):

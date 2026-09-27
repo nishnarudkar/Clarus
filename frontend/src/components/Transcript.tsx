@@ -1,4 +1,6 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
+import { usePublicConfig } from '../config'
+import { TurnFeaturesRow } from './TurnFeaturesRow'
 import type { ConfBand, FinalTurnEvent, PartialTranscriptEvent, Word } from '../types'
 
 // Colour is never the only signal: each band also has its own underline and marker.
@@ -20,13 +22,7 @@ function WordSpan({ word, partial }: { word: Word; partial?: boolean }) {
 
 export function ConfidenceLegend() {
   // Band thresholds live in backend config.py; the backend also assigns each word's band.
-  const [bands, setBands] = useState<{ conf_band_high: number; conf_band_low: number } | null>(null)
-  useEffect(() => {
-    fetch('/api/config')
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setBands)
-      .catch(() => setBands(null))
-  }, [])
+  const bands = usePublicConfig()
   const hi = bands ? bands.conf_band_high.toFixed(2) : '…'
   const lo = bands ? bands.conf_band_low.toFixed(2) : '…'
   return (
@@ -60,8 +56,9 @@ export function Transcript({ turns, partial }: { turns: FinalTurnEvent[]; partia
                 </Fragment>
               ))}
             </div>
+            <TurnFeaturesRow f={t.features} />
             <div className="turn-meta">
-              turn {t.turn_order + 1} · {t.words.length} words · end-of-turn conf {t.end_of_turn_confidence.toFixed(2)}
+              turn {t.turn_order + 1} · end-of-turn conf {t.end_of_turn_confidence.toFixed(2)}
               {t.formatted ? ' · formatted' : ''}
             </div>
           </li>

@@ -235,4 +235,39 @@ def test_health_does_not_leak_key():
 
 def test_public_config_exposes_bands_only():
     body = TestClient(app).get("/api/config").json()
-    assert body == {"conf_band_high": 0.85, "conf_band_low": 0.6}
+    assert body == {
+        "conf_band_high": 0.85,
+        "conf_band_low": 0.6,
+        "pause_min_ms": 250,
+        "long_pause_min_ms": 1000,
+        "low_conf_threshold": 0.6,
+    }
+
+
+def test_final_turn_carries_features_and_repetition_uses_previous_distinct_turn(use_connector):
+    first = [("gate", 0.9), ("fifteen", 0.4)]
+    fake = FakeUpstream(
+        script=[
+            [turn(0, first, end=True), turn(0, [("Gate", 0.9), ("15.", 0.4)], end=True, formatted=True)],
+            [turn(1, first, end=True), turn(1, [("Gate", 0.9), ("fifteen.", 0.4)], end=True, formatted=True)],
+        ]
+    )
+    use_connector(FakeConnector(fake))
+    with TestClient(app).websocket_connect("/ws/session/abc") as ws:
+        ws.send_text(json.dumps({"type": "start_stream"}))
+        recv_until(ws, is_state("listening"))
+        ws.send_bytes(AUDIO)
+        t0 = [recv_until(ws, lambda e: e["type"] == "final_turn")[-1] for _ in range(2)]
+        ws.send_bytes(AUDIO)
+        t1 = [recv_until(ws, lambda e: e["type"] == "final_turn")[-1] for _ in range(2)]
+        ws.send_text(json.dumps({"type": "end_session"}))
+        recv_until(ws, is_state("stopped"))
+
+    f = t0[0]["features"]
+    assert f["word_count"] == 2 and f["min_asr_conf"] == pytest.approx(0.4)
+    assert f["low_conf_frac"] == pytest.approx(0.5) and f["pause_count"] == 0
+    # turn 0 (both versions): nothing before it
+    assert [t["features"]["repetition_overlap"] for t in t0] == [None, None]
+    # turn 1 repeats turn 0; its formatted re-send still compares against turn 0, not itself
+    assert [t["features"]["repetition_overlap"] for t in t1] == [pytest.approx(1.0), pytest.approx(1.0)]
+    assert all(t["features"]["is_repetition"] for t in t1)

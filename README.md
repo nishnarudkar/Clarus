@@ -28,18 +28,21 @@ Clarus formalizes the distinction between two failure modes:
 1. **Heard but Misunderstood:** High transcript confidence with incorrect semantic interpretation.
 2. **Misheard but Communicated:** Low-confidence acoustic input where the core message was successfully repaired and delivered.
 
-```
-                   High Semantic Understanding
-                               │
-   Misheard but Communicated   │   Successful Communication
-   (Low ASR Conf, High Slot)   │   (High ASR Conf, High Slot)
- ───────────────▲──────────────┼───────────────▲───────────────
- low ASR conf   │              │               │   high ASR conf
- ───────────────▼──────────────┼───────────────▼───────────────
-   Unrepaired Acoustic Failure │   Heard but Misunderstood
-   (Low ASR Conf, Low Slot)    │   (High ASR Conf, Low Slot)
-                               │
-                   Low Semantic Understanding
+```mermaid
+flowchart TB
+    subgraph Matrix ["Transcription Accuracy vs. Semantic Understanding"]
+        direction TB
+        subgraph TopRow ["High Semantic Understanding"]
+            direction LR
+            Q2["<b>Misheard but Communicated</b><br/><i>(Low ASR Confidence, High Slot Accuracy)</i>"]
+            Q1["<b>Successful Communication</b><br/><i>(High ASR Confidence, High Slot Accuracy)</i>"]
+        end
+        subgraph BottomRow ["Low Semantic Understanding"]
+            direction LR
+            Q3["<b>Unrepaired Acoustic Failure</b><br/><i>(Low ASR Confidence, Low Slot Accuracy)</i>"]
+            Q4["<b>Heard but Misunderstood</b><br/><i>(High ASR Confidence, Low Slot Accuracy)</i>"]
+        end
+    end
 ```
 
 ---
@@ -58,36 +61,43 @@ Clarus formalizes the distinction between two failure modes:
 
 Clarus separates high-throughput audio streaming from structured semantic processing and rule-based dialogue management.
 
-```
-                               ┌────────────────────────────────────────────────────────┐
-                               │                    FastAPI Backend                     │
-                               │                                                        │
-┌────────────────────────┐     │  ┌───────────────────────┐   WS   ┌─────────────────┐  │
-│  Browser Client        │  WS │  │ AssemblyAIStreamClient│───────►│ AssemblyAI      │  │
-│                        │◄────┼─►│                       │◄───────│ Streaming STT   │  │
-│ - Mic (16 kHz PCM16)   │     │  └───────────┬───────────┘        └─────────────────┘  │
-│ - AudioWorklet         │     │              │ Turn & Word Confidences                 │
-│ - Live Transcript UI   │     │              ▼                                         │
-│ - SpeechSynthesis TTS  │     │  ┌───────────────────────┐        ┌─────────────────┐  │
-└────────────────────────┘     │  │ FeatureExtractor      │        │ AssemblyAI      │  │
-                               │  └───────────┬───────────┘        │ LLM Gateway     │  │
-                               │              │ Turn Features      │ (JSON Mode)     │  │
-                               │              ▼                    └────────▲────────┘  │
-                               │  ┌───────────────────────┐                 │           │
-                               │  │ Interpreter           │─────────────────┘           │
-                               │  └───────────┬───────────┘ Structured Slots            │
-                               │              │                                         │
-                               │              ▼                                         │
-                               │  ┌───────────────────────┐                             │
-                               │  │ BreakdownDetector     │ (Deterministic Rules)       │
-                               │  └───────────┬───────────┘                             │
-                               │              │ Active Breakdowns                       │
-                               │              ▼                                         │
-                               │  ┌───────────────────────┐        ┌─────────────────┐  │
-                               │  │ DialogueManager       │───────►│ Scorer & SQLite │  │
-                               │  │ (State Machine)       │        │ Storage         │  │
-                               │  └───────────────────────┘        └─────────────────┘  │
-                               └────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Client ["Browser Client"]
+        Mic["Microphone (16 kHz PCM16)"]
+        Worklet["AudioWorklet Downsampler"]
+        TranscriptUI["Live Confidence Transcript UI"]
+        TTS["Web Speech API (TTS)"]
+    end
+
+    subgraph Backend ["FastAPI Backend"]
+        StreamClient["AssemblyAIStreamClient"]
+        FeatureExtractor["FeatureExtractor"]
+        Interpreter["Interpreter Engine"]
+        BreakdownDetector["BreakdownDetector"]
+        DialogueManager["DialogueManager (State Machine)"]
+        Storage["Scorer & SQLite Storage"]
+    end
+
+    subgraph Cloud ["AssemblyAI Cloud Infrastructure"]
+        StreamingSTT["Universal-Streaming STT"]
+        LLMGateway["LLM Gateway (JSON Mode)"]
+    end
+
+    Mic --> Worklet
+    Worklet -- "WebSocket PCM16 Frames" --> StreamClient
+    StreamClient -- "WS Audio Stream" --> StreamingSTT
+    StreamingSTT -- "Turn & Word Confidences" --> StreamClient
+    StreamClient --> FeatureExtractor
+    FeatureExtractor -- "Turn Features" --> Interpreter
+    Interpreter -- "HTTPS (Structured JSON Prompt)" --> LLMGateway
+    LLMGateway -- "JSON Slots Response" --> Interpreter
+    Interpreter -- "Structured Slots" --> BreakdownDetector
+    FeatureExtractor --> BreakdownDetector
+    BreakdownDetector -- "Active Breakdowns" --> DialogueManager
+    DialogueManager -- "Agent Say (TTS)" --> TTS
+    DialogueManager -- "UI State & Partials" --> TranscriptUI
+    DialogueManager --> Storage
 ```
 
 ### Why Real-Time Streaming STT over All-in-One Voice Agent APIs?
@@ -99,22 +109,19 @@ Clarus requires fine-grained word-level timestamps and confidence metrics to com
 
 Every referential relay session operates as an episode governed by a deterministic state machine inside the `DialogueManager`:
 
-```
-┌──────────────┐     ┌───────────┐     ┌──────────────┐
-│ PRESENT_CARD │────►│ LISTENING │────►│ INTERPRETING │
-└──────────────┘     └───────────┘     └──────┬───────┘
-                           ▲                  │
-                           │     Breakdown    ├──────────────────────┐ No Breakdown
-                           └──────────────────┤                      │
-                             (Clarification)  ▼                      ▼
-                                      ┌──────────────┐        ┌──────────────┐
-                                      │  CLARIFYING  │        │   READBACK   │
-                                      └──────────────┘        └──────┬───────┘
-                                                                     │ User Confirmation
-                                                                     ▼
-                                                              ┌──────────────┐
-                                                              │    SCORED    │
-                                                              └──────────────┘
+```mermaid
+flowchart LR
+    PRESENT_CARD["PRESENT_CARD<br/><i>(Display Target Card)</i>"] --> LISTENING["LISTENING<br/><i>(Capture Mic Audio)</i>"]
+    LISTENING --> INTERPRETING["INTERPRETING<br/><i>(Extract Features & Slots)</i>"]
+    
+    INTERPRETING --> CHECK{Active Breakdown?}
+    CHECK -- "Yes (Clarify Slot)" --> CLARIFYING["CLARIFYING<br/><i>(Agent Ask Question)</i>"]
+    CLARIFYING --> LISTENING
+    
+    CHECK -- "No (All Slots Valid)" --> READBACK["READBACK<br/><i>(Read Back Understanding)</i>"]
+    READBACK --> CONFIRM{User Confirms?}
+    CONFIRM -- "No / Correction" --> INTERPRETING
+    CONFIRM -- "Yes" --> SCORED["SCORED<br/><i>(Evaluate vs Target Card)</i>"]
 ```
 
 1. **PRESENT_CARD:** The user is presented with a target message card containing specific semantic slots.
@@ -193,12 +200,51 @@ Because ground truth is known, every breakdown event resolves to one of four obj
 
 Persistence is handled via SQLite (`data/Clarus.db`). Pydantic v2 schemas mirror all database models:
 
-```
-Session (id, created_at, mode, condition, participant_label, consent_given)
-  ├── Episode (id, session_id, card_id, status, slot_accuracy, efficiency, cei, metrics_json)
-  │     ├── Turn (id, episode_id, idx, speaker, text, words_json, features_json, interpretation_json)
-  │     ├── Event (id, episode_id, turn_id, type, slot, repair_initiation, details_json, outcome)
-  │     └── Annotation (id, episode_id, annotator, understood_bool, breakdown_types_json, notes)
+```mermaid
+erDiagram
+    SESSION ||--|{ EPISODE : "contains"
+    EPISODE ||--|{ TURN : "records"
+    EPISODE ||--|{ EVENT : "generates"
+    EPISODE ||--o{ ANNOTATION : "receives"
+
+    SESSION {
+        string id PK
+        datetime created_at
+        string mode
+        string condition
+        string participant_label
+        boolean consent_given
+    }
+    EPISODE {
+        string id PK
+        string session_id FK
+        string card_id
+        string status
+        float slot_accuracy
+        float efficiency
+        float cei
+    }
+    TURN {
+        string id PK
+        string episode_id FK
+        int idx
+        string speaker
+        string text
+    }
+    EVENT {
+        string id PK
+        string episode_id FK
+        string turn_id FK
+        string type
+        string slot
+        string outcome
+    }
+    ANNOTATION {
+        string id PK
+        string episode_id FK
+        string annotator
+        boolean understood
+    }
 ```
 
 ### Event Export Format (JSONL)
